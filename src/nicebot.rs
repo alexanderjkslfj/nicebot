@@ -220,6 +220,47 @@ impl NiceBot {
 
     #[cfg(feature = "async")]
     async fn extend_prefixes_async(&mut self, captures: impl Stream<Item = (String, String)>) {
+        if self.user_agent.is_some() {
+            self.extend_prefixes_with_user_agent_async(captures).await
+        } else {
+            self.extend_prefixes_without_user_agent_async(captures)
+                .await
+        }
+    }
+
+    async fn extend_prefixes_without_user_agent_async(
+        &mut self,
+        captures: impl Stream<Item = (String, String)>,
+    ) {
+        captures
+            .map(Self::decode)
+            .scan(false, |state, (op, val)| match op.as_str() {
+                "user-agent" => {
+                    *state = val == "*";
+                    Some(None)
+                }
+                "allow" if *state => Some(Some((true, val))),
+                "disallow" if *state => Some(Some((false, val))),
+                _ => Some(None),
+            })
+            .filter_map(|opt| opt)
+            .for_each(|(allow, val): (bool, String)| {
+                self.prefixes.insert(
+                    &val,
+                    if allow {
+                        Permission::Allowed
+                    } else {
+                        Permission::Denied
+                    },
+                );
+            })
+            .await;
+    }
+
+    async fn extend_prefixes_with_user_agent_async(
+        &mut self,
+        captures: impl Stream<Item = (String, String)>,
+    ) {
         let precise = Cell::new(false);
 
         captures
@@ -235,6 +276,45 @@ impl NiceBot {
     }
 
     fn extend_prefixes(&mut self, captures: impl Iterator<Item = (String, String)>) {
+        if self.user_agent.is_some() {
+            self.extend_prefixes_with_user_agent(captures);
+        } else {
+            self.extend_prefixes_without_user_agent(captures);
+        }
+    }
+
+    fn extend_prefixes_without_user_agent(
+        &mut self,
+        captures: impl Iterator<Item = (String, String)>,
+    ) {
+        captures
+            .map(Self::decode)
+            .scan(false, |state, (op, val)| match op.as_str() {
+                "user-agent" => {
+                    *state = val == "*";
+                    Some(None)
+                }
+                "allow" if *state => Some(Some((true, val))),
+                "disallow" if *state => Some(Some((false, val))),
+                _ => Some(None),
+            })
+            .filter_map(|opt| opt)
+            .for_each(|(allow, val): (bool, String)| {
+                self.prefixes.insert(
+                    &val,
+                    if allow {
+                        Permission::Allowed
+                    } else {
+                        Permission::Denied
+                    },
+                );
+            });
+    }
+
+    fn extend_prefixes_with_user_agent(
+        &mut self,
+        captures: impl Iterator<Item = (String, String)>,
+    ) {
         let precise = Cell::new(false);
 
         captures
