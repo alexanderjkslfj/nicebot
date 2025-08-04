@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::{cell::Cell, ops::AddAssign};
 
 #[cfg(feature = "async")]
 use futures_lite::stream::{Stream, StreamExt};
@@ -27,6 +27,87 @@ enum Match {
     No,
 }
 
+impl AddAssign<String> for NiceBot {
+    fn add_assign(&mut self, rhs: String) {
+        let captures = Self::capture_str(rhs.as_str());
+        self.extend_prefixes(captures);
+    }
+}
+
+impl From<String> for NiceBot {
+    fn from(value: String) -> Self {
+        let mut bot = Self::new(None);
+        bot += value;
+        bot
+    }
+}
+
+impl AddAssign<&String> for NiceBot {
+    fn add_assign(&mut self, rhs: &String) {
+        let captures = Self::capture_str(rhs.as_str());
+        self.extend_prefixes(captures);
+    }
+}
+
+impl From<&String> for NiceBot {
+    fn from(value: &String) -> Self {
+        let mut bot = Self::new(None);
+        bot += value;
+        bot
+    }
+}
+
+impl AddAssign<&str> for NiceBot {
+    fn add_assign(&mut self, rhs: &str) {
+        let captures = Self::capture_str(rhs);
+        self.extend_prefixes(captures);
+    }
+}
+
+impl From<&str> for NiceBot {
+    fn from(value: &str) -> Self {
+        let mut bot = Self::new(None);
+        bot += value;
+        bot
+    }
+}
+
+impl AddAssign<std::fs::File> for NiceBot {
+    fn add_assign(&mut self, rhs: std::fs::File) {
+        let captures = Self::capture_file(rhs);
+        self.extend_prefixes(captures);
+    }
+}
+
+impl From<std::fs::File> for NiceBot {
+    fn from(value: std::fs::File) -> Self {
+        let mut bot = Self::new(None);
+        bot += value;
+        bot
+    }
+}
+
+impl<T> AddAssign<std::io::BufReader<T>> for NiceBot
+where
+    T: std::io::Read,
+{
+    fn add_assign(&mut self, rhs: std::io::BufReader<T>) {
+        let captures = Self::capture_reader(rhs);
+        self.extend_prefixes(captures);
+    }
+}
+
+impl<T> From<std::io::BufReader<T>> for NiceBot
+where
+    T: std::io::Read,
+{
+    fn from(value: std::io::BufReader<T>) -> Self {
+        let mut bot = Self::new(None);
+        bot += value;
+        bot
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NiceBot {
     prefixes: PrefixTrie<Permission>,
@@ -41,26 +122,6 @@ impl NiceBot {
             prefixes,
             user_agent,
         }
-    }
-
-    pub fn add_string(&mut self, robots_txt: String) {
-        let captures = Self::capture_str(robots_txt.as_str());
-        self.extend_prefixes(captures);
-    }
-
-    pub fn add_str(&mut self, robots_txt: &str) {
-        let captures = Self::capture_str(robots_txt);
-        self.extend_prefixes(captures);
-    }
-
-    pub fn add_file(&mut self, robots_txt: std::fs::File) {
-        let captures = Self::capture_file(robots_txt);
-        self.extend_prefixes(captures);
-    }
-
-    pub fn add_reader(&mut self, robots_txt: std::io::BufReader<impl std::io::Read>) {
-        let captures = Self::capture_reader(robots_txt);
-        self.extend_prefixes(captures);
     }
 
     #[cfg(feature = "async-tokio")]

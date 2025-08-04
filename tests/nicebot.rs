@@ -9,8 +9,7 @@ mod tests {
             Allow: /abc
         "#;
 
-        let mut bot = NiceBot::new(None);
-        bot.add_str(INPUT);
+        let bot = NiceBot::from(INPUT);
 
         assert_eq!(bot.check("/xyz"), Permission::Unspecified);
         assert_eq!(bot.check("/abc"), Permission::Allowed);
@@ -20,8 +19,7 @@ mod tests {
     fn from_file() {
         let input = std::fs::File::open("test-data/tor.txt").unwrap();
 
-        let mut bot = NiceBot::new(None);
-        bot.add_file(input);
+        let bot = NiceBot::from(input);
 
         assert_eq!(bot.check("/sass"), Permission::Unspecified);
         assert_eq!(bot.check("/scss"), Permission::Denied);
@@ -32,8 +30,7 @@ mod tests {
         let input = std::fs::File::open("test-data/tor.txt").unwrap();
         let reader = std::io::BufReader::new(input);
 
-        let mut bot = NiceBot::new(None);
-        bot.add_reader(reader);
+        let bot = NiceBot::from(reader);
 
         assert_eq!(bot.check("/sass"), Permission::Unspecified);
         assert_eq!(bot.check("/scss"), Permission::Denied);
