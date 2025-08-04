@@ -9,7 +9,8 @@ mod tests {
             Allow: /abc
         "#;
 
-        let bot = NiceBot::from(INPUT);
+        let mut bot = NiceBot::new(None);
+        bot.add_str(INPUT);
 
         assert_eq!(bot.check("/xyz"), Permission::Unspecified);
         assert_eq!(bot.check("/abc"), Permission::Allowed);
@@ -19,7 +20,8 @@ mod tests {
     fn from_file() {
         let input = std::fs::File::open("test-data/tor.txt").unwrap();
 
-        let bot = NiceBot::from(input);
+        let mut bot = NiceBot::new(None);
+        bot.add_file(input);
 
         assert_eq!(bot.check("/sass"), Permission::Unspecified);
         assert_eq!(bot.check("/scss"), Permission::Denied);
@@ -30,7 +32,8 @@ mod tests {
         let input = std::fs::File::open("test-data/tor.txt").unwrap();
         let reader = std::io::BufReader::new(input);
 
-        let bot = NiceBot::from(reader);
+        let mut bot = NiceBot::new(None);
+        bot.add_reader(reader);
 
         assert_eq!(bot.check("/sass"), Permission::Unspecified);
         assert_eq!(bot.check("/scss"), Permission::Denied);
@@ -44,7 +47,8 @@ mod tests {
         rt.block_on(async {
             let input = tokio::fs::File::open("test-data/tor.txt").await.unwrap();
 
-            let bot = NiceBot::from_file_tokio(input).await;
+            let mut bot = NiceBot::new(None);
+            bot.add_file_tokio(input).await;
 
             assert_eq!(bot.check("/sass"), Permission::Unspecified);
             assert_eq!(bot.check("/scss"), Permission::Denied);
@@ -59,7 +63,8 @@ mod tests {
                 .await
                 .unwrap();
 
-            let bot = NiceBot::from_file_asyncstd(input).await;
+            let mut bot = NiceBot::new(None);
+            bot.add_file_asyncstd(input).await;
 
             assert_eq!(bot.check("/sass"), Permission::Unspecified);
             assert_eq!(bot.check("/scss"), Permission::Denied);
@@ -72,7 +77,8 @@ mod tests {
         smol::block_on(async {
             let input = smol::fs::File::open("test-data/tor.txt").await.unwrap();
 
-            let bot = NiceBot::from_file_smol(input).await;
+            let mut bot = NiceBot::new(None);
+            bot.add_file_smol(input).await;
 
             assert_eq!(bot.check("/sass"), Permission::Unspecified);
             assert_eq!(bot.check("/scss"), Permission::Denied);

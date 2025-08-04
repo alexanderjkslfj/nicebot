@@ -7,8 +7,6 @@ use percent_encoding::percent_decode_str;
 
 use crate::PrefixTrie;
 
-const USER_AGENT: &'static str = "nicebot";
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Permission {
     Allowed,
@@ -32,89 +30,64 @@ enum Match {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NiceBot {
     prefixes: PrefixTrie<Permission>,
-}
-
-impl From<String> for NiceBot {
-    fn from(value: String) -> Self {
-        let captures = Self::capture_str(value.as_str());
-        let prefixes = Self::captures_to_prefixes(captures);
-
-        Self { prefixes }
-    }
-}
-
-impl From<&String> for NiceBot {
-    fn from(value: &String) -> Self {
-        let captures = Self::capture_str(value.as_str());
-        let prefixes = Self::captures_to_prefixes(captures);
-
-        Self { prefixes }
-    }
-}
-
-impl From<&str> for NiceBot {
-    fn from(value: &str) -> Self {
-        let captures = Self::capture_str(value);
-        let prefixes = Self::captures_to_prefixes(captures);
-
-        Self { prefixes }
-    }
-}
-
-impl From<std::fs::File> for NiceBot {
-    fn from(value: std::fs::File) -> Self {
-        let captures = Self::capture_file(value);
-        let prefixes = Self::captures_to_prefixes(captures);
-
-        Self { prefixes }
-    }
-}
-
-impl<Reader> From<std::io::BufReader<Reader>> for NiceBot
-where
-    Reader: std::io::Read,
-{
-    fn from(value: std::io::BufReader<Reader>) -> Self {
-        let captures = Self::capture_reader(value);
-        let prefixes = Self::captures_to_prefixes(captures);
-
-        Self { prefixes }
-    }
+    user_agent: Option<String>,
 }
 
 impl NiceBot {
-    #[cfg(feature = "async-tokio")]
-    pub async fn from_file_tokio(robots_file: tokio::fs::File) -> Self {
-        let captures = Self::capture_file_tokio(robots_file);
-        let prefixes = Self::captures_to_prefixes_async(captures).await;
+    pub fn new(user_agent: Option<String>) -> Self {
+        let mut prefixes = PrefixTrie::new();
+        prefixes.insert("", Permission::Unspecified);
+        NiceBot {
+            prefixes,
+            user_agent,
+        }
+    }
 
-        Self { prefixes }
+    pub fn add_string(&mut self, robots_txt: String) {
+        let captures = Self::capture_str(robots_txt.as_str());
+        self.extend_prefixes(captures);
+    }
+
+    pub fn add_str(&mut self, robots_txt: &str) {
+        let captures = Self::capture_str(robots_txt);
+        self.extend_prefixes(captures);
+    }
+
+    pub fn add_file(&mut self, robots_txt: std::fs::File) {
+        let captures = Self::capture_file(robots_txt);
+        self.extend_prefixes(captures);
+    }
+
+    pub fn add_reader(&mut self, robots_txt: std::io::BufReader<impl std::io::Read>) {
+        let captures = Self::capture_reader(robots_txt);
+        self.extend_prefixes(captures);
+    }
+
+    #[cfg(feature = "async-tokio")]
+    pub async fn add_file_tokio(&mut self, robots_txt: tokio::fs::File) {
+        let captures = Self::capture_file_tokio(robots_txt);
+        self.extend_prefixes_async(captures).await;
     }
 
     #[cfg(feature = "async-async-std")]
-    pub async fn from_file_asyncstd(robots_file: async_std::fs::File) -> Self {
-        let captures = Self::capture_file_asyncstd(robots_file);
-        let prefixes = Self::captures_to_prefixes_async(captures).await;
-
-        Self { prefixes }
+    pub async fn add_file_asyncstd(&mut self, robots_txt: async_std::fs::File) {
+        let captures = Self::capture_file_asyncstd(robots_txt);
+        self.extend_prefixes_async(captures).await;
     }
 
     #[cfg(feature = "async-smol")]
-    pub async fn from_file_smol(robots_file: smol::fs::File) -> Self {
-        let captures = Self::capture_file_smol(robots_file);
-        let prefixes = Self::captures_to_prefixes_async(captures).await;
-
-        Self { prefixes }
+    pub async fn add_file_smol(&mut self, robots_txt: smol::fs::File) {
+        let captures = Self::capture_file_smol(robots_txt);
+        self.extend_prefixes_async(captures).await;
     }
 
     #[cfg(feature = "async")]
     pub async fn from_reader_async(
-        robots_reader: futures_lite::io::BufReader<impl futures_lite::AsyncBufReadExt + Unpin>,
-    ) -> Self {
-        let captures = Self::capture_reader_async(robots_reader);
-        let prefixes = Self::captures_to_prefixes_async(captures).await;
-
-        Self { prefixes }
+        &mut self,
+        robots_txt: futures_lite::io::BufReader<impl futures_lite::AsyncBufReadExt + Unpin>,
+    ) {
+        let captures = Self::capture_reader_async(robots_txt);
+        self.extend_prefixes_async(captures).await;
     }
 
     fn decode((op, mut val): (String, String)) -> (String, String) {
@@ -137,13 +110,16 @@ impl NiceBot {
     fn conform(
         state: &mut Match,
         precise: &Cell<bool>,
+        user_agent: Option<&String>,
         (op, val): (String, String),
     ) -> Option<Option<(Match, (String, String))>> {
         match op.as_str() {
             "user-agent" => {
                 if val == "*" {
                     *state = Match::Star;
-                } else if val.to_lowercase().contains(USER_AGENT) {
+                } else if let Some(ua) = user_agent
+                    && val.to_lowercase().contains(ua)
+                {
                     *state = Match::Yes;
                     precise.set(true);
                 } else {
@@ -173,64 +149,42 @@ impl NiceBot {
         }
     }
 
-    fn extend_prefix_trie(
-        mut prefixes: PrefixTrie<Permission>,
-        (op, val): (String, String),
-    ) -> PrefixTrie<Permission> {
+    fn extend_prefix_trie(prefixes: &mut PrefixTrie<Permission>, (op, val): (String, String)) {
         match op.as_str() {
             "allow" => prefixes.insert(&val, Permission::Allowed),
             "disallow" => prefixes.insert(&val, Permission::Denied),
             _ => unreachable!(),
         };
-        prefixes
     }
 
     #[cfg(feature = "async")]
-    async fn captures_to_prefixes_async(
-        captures: impl Stream<Item = (String, String)>,
-    ) -> PrefixTrie<Permission> {
+    async fn extend_prefixes_async(&mut self, captures: impl Stream<Item = (String, String)>) {
         let precise = Cell::new(false);
 
         captures
             .map(Self::decode)
             .scan(Match::No, |state, (op, val)| {
-                Self::conform(state, &precise, (op, val))
+                Self::conform(state, &precise, self.user_agent.as_ref(), (op, val))
             })
             .collect::<Vec<_>>()
             .await
             .into_iter()
             .filter_map(|result| Self::filter_weak(result, precise.get()))
-            .fold(
-                {
-                    let mut initial_prefixes = PrefixTrie::new();
-                    initial_prefixes.insert("", Permission::Unspecified);
-                    initial_prefixes
-                },
-                Self::extend_prefix_trie,
-            )
+            .for_each(|pair| Self::extend_prefix_trie(&mut self.prefixes, pair));
     }
 
-    fn captures_to_prefixes(
-        captures: impl Iterator<Item = (String, String)>,
-    ) -> PrefixTrie<Permission> {
+    fn extend_prefixes(&mut self, captures: impl Iterator<Item = (String, String)>) {
         let precise = Cell::new(false);
 
         captures
             .map(Self::decode)
             .scan(Match::No, |state, (op, val)| {
-                Self::conform(state, &precise, (op, val))
+                Self::conform(state, &precise, self.user_agent.as_ref(), (op, val))
             })
             .collect::<Vec<_>>()
             .into_iter()
             .filter_map(|result| Self::filter_weak(result, precise.get()))
-            .fold(
-                {
-                    let mut initial_prefixes = PrefixTrie::new();
-                    initial_prefixes.insert("", Permission::Unspecified);
-                    initial_prefixes
-                },
-                Self::extend_prefix_trie,
-            )
+            .for_each(|pair| Self::extend_prefix_trie(&mut self.prefixes, pair));
     }
 
     /// Trims the internal data structure, saving a few bytes.

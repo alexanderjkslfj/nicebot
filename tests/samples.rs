@@ -7,7 +7,8 @@ mod tests {
     async fn check_reddit() {
         let str = fs::read_to_string("./test-data/reddit.txt").await.unwrap();
 
-        let robot = NiceBot::from(str);
+        let mut robot = NiceBot::new(None);
+        robot.add_string(str);
 
         assert_eq!(robot.check("/"), Permission::Denied);
         assert_eq!(robot.check("/robots.txt"), Permission::Denied);
@@ -17,7 +18,8 @@ mod tests {
     async fn check_tor() {
         let str = fs::read_to_string("./test-data/tor.txt").await.unwrap();
 
-        let robot = NiceBot::from(str);
+        let mut robot = NiceBot::new(None);
+        robot.add_string(str);
 
         assert_eq!(robot.check("/"), Permission::Unspecified);
         assert_eq!(robot.check("/java"), Permission::Unspecified);
@@ -30,7 +32,8 @@ mod tests {
     async fn check_lib() {
         let str = fs::read_to_string("./test-data/lib.txt").await.unwrap();
 
-        let robot = NiceBot::from(str);
+        let mut robot = NiceBot::new(None);
+        robot.add_string(str);
 
         assert_eq!(robot.check("/"), Permission::Unspecified);
         assert_eq!(robot.check("/keywords"), Permission::Unspecified);
@@ -47,7 +50,8 @@ mod tests {
             .await
             .unwrap();
 
-        let robot = NiceBot::from(str);
+        let mut robot = NiceBot::new(None);
+        robot.add_string(str);
 
         assert_eq!(robot.check("/"), Permission::Allowed);
         assert_eq!(robot.check("/a"), Permission::Denied);
