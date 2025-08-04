@@ -1,0 +1,27 @@
+User-Agent: *
+Disallow: /keywords/
+Disallow: /install/
+Disallow: /search
+Disallow: /crates/faker
+
+User-Agent: *
+Disallow: /crates/*/source
+Disallow: */versions
+Disallow: */source?at*
+Disallow: /~*/dash
+
+# seo scourge
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: VelenPublicWebCrawler
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /

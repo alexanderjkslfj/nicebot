@@ -1,0 +1,60 @@
+[package]
+name = "nicebot"
+version = "0.1.0"
+
+edition = "2024"
+include = ["src/*"]
+
+[features]
+default = ["full"] #["percent-decoding", "async"]
+full = [
+    "percent-decoding",
+    "async",
+    "async-tokio",
+    "async-async-std",
+    "async-smol",
+]
+percent-decoding = ["dep:percent-encoding"]
+async = ["dep:futures-lite"]
+async-tokio = ["async", "dep:tokio", "dep:tokio-util"]
+async-async-std = ["async", "dep:async-std"]
+async-smol = ["async", "dep:smol"]
+
+[dependencies]
+percent-encoding = { version = "2", optional = true }
+tokio = { version = "1", optional = true, default-features = false, features = [
+    "io-util",
+    "fs",
+] }
+tokio-util = { version = "0.7", optional = true, default-features = false, features = [
+    "compat",
+] }
+async-std = { version = "1", optional = true, default-features = true }
+smol = { version = "2", optional = true, default-features = false }
+futures-lite = { version = "2", optional = true, default-features = false, features = [
+    "std",
+] }
+
+[dev-dependencies]
+tokio = { version = "1", default-features = false, features = [
+    "io-util",
+    "macros",
+    "fs",
+    "rt",
+    "rt-multi-thread",
+] }
+criterion = { version = "0.6" }
+
+[[test]]
+name = "trie"
+path = "tests/trie.rs"
+[[test]]
+name = "samples"
+path = "tests/samples.rs"
+[[test]]
+name = "nicebot"
+path = "tests/nicebot.rs"
+
+[[bench]]
+name = "nicebot"
+harness = false
