@@ -2,8 +2,17 @@
 name = "nicebot"
 version = "0.1.0"
 
+description = "A fast and lean `robots.txt` parser"
+keywords = ["parser", "parsing"]
+categories = ["parser-implementations"]
+
+license = "MPL-2.0"
+readme = "README.md"
+repository = "https://github.com/alexanderjkslfj/nicebot"
+
 edition = "2024"
-include = ["src/*"]
+rust-version = "1.88"
+include = ["src/*", "LICENSE", "README.md"]
 
 [features]
 default = ["full"]
