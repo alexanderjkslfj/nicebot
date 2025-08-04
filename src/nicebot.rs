@@ -108,6 +108,12 @@ where
     }
 }
 
+impl Default for NiceBot {
+    fn default() -> Self {
+        NiceBot::new(None)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NiceBot {
     prefixes: PrefixTrie<Permission>,
