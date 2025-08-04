@@ -5,20 +5,7 @@ use futures_lite::stream::{Stream, StreamExt};
 #[cfg(feature = "percent-decoding")]
 use percent_encoding::percent_decode_str;
 
-use crate::PrefixTrie;
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
-pub enum Permission {
-    Allowed,
-    Denied,
-    Unspecified,
-}
-
-impl Default for Permission {
-    fn default() -> Self {
-        Self::Unspecified
-    }
-}
+use crate::{Permission, PrefixTrie};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 enum Match {

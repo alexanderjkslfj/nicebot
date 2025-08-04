@@ -53,9 +53,9 @@ path = "tests/trie.rs"
 name = "samples"
 path = "tests/samples.rs"
 [[test]]
-name = "nicebot"
-path = "tests/nicebot.rs"
+name = "singlebot"
+path = "tests/singlebot.rs"
 
 [[bench]]
-name = "nicebot"
+name = "singlebot"
 harness = false

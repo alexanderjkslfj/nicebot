@@ -4,7 +4,7 @@ use url::{Host, ParseError, Url};
 
 use crate::{Permission, SingleBot};
 
-pub struct NiceBot {
+pub struct MetaBot {
     hosts: HashMap<Host<String>, SingleBot>,
     user_agent: Option<String>,
 }
@@ -13,7 +13,7 @@ pub trait AddRobots<T> {
     fn add_robots(&mut self, host: Host<String>, robots_txt: T);
 }
 
-impl<T> AddRobots<T> for NiceBot
+impl<T> AddRobots<T> for MetaBot
 where
     SingleBot: AddAssign<T>,
 {
@@ -30,9 +30,9 @@ pub trait TryAddRobots<T, Q> {
     fn try_add_robots(&mut self, host: Q, robots_txt: T) -> bool;
 }
 
-impl<T> TryAddRobots<T, &str> for NiceBot
+impl<T> TryAddRobots<T, &str> for MetaBot
 where
-    NiceBot: AddRobots<T>,
+    MetaBot: AddRobots<T>,
 {
     fn try_add_robots(&mut self, host: &str, robots_txt: T) -> bool {
         let Ok(parsed_host) = Host::parse(host) else {
@@ -43,9 +43,9 @@ where
     }
 }
 
-impl<T> TryAddRobots<T, &String> for NiceBot
+impl<T> TryAddRobots<T, &String> for MetaBot
 where
-    NiceBot: AddRobots<T>,
+    MetaBot: AddRobots<T>,
 {
     fn try_add_robots(&mut self, host: &String, robots_txt: T) -> bool {
         let Ok(parsed_host) = Host::parse(host.as_str()) else {
@@ -56,9 +56,9 @@ where
     }
 }
 
-impl<T> TryAddRobots<T, String> for NiceBot
+impl<T> TryAddRobots<T, String> for MetaBot
 where
-    NiceBot: AddRobots<T>,
+    MetaBot: AddRobots<T>,
 {
     fn try_add_robots(&mut self, host: String, robots_txt: T) -> bool {
         let Ok(parsed_host) = Host::parse(host.as_str()) else {
@@ -78,7 +78,7 @@ pub enum CheckError {
     MissingHost,
 }
 
-impl CheckURL<Url> for NiceBot {
+impl CheckURL<Url> for MetaBot {
     fn check(&self, url: Url) -> Result<Permission, CheckError> {
         if let Some(host) = url.host() {
             if let Some(bot) = self.hosts.get(&host.to_owned()) {
@@ -92,7 +92,7 @@ impl CheckURL<Url> for NiceBot {
     }
 }
 
-impl CheckURL<&str> for NiceBot {
+impl CheckURL<&str> for MetaBot {
     fn check(&self, url: &str) -> Result<Permission, CheckError> {
         match Url::parse(url) {
             Ok(parsed) => self.check(parsed),
@@ -101,19 +101,19 @@ impl CheckURL<&str> for NiceBot {
     }
 }
 
-impl CheckURL<&String> for NiceBot {
+impl CheckURL<&String> for MetaBot {
     fn check(&self, url: &String) -> Result<Permission, CheckError> {
         self.check(url.as_str())
     }
 }
 
-impl CheckURL<String> for NiceBot {
+impl CheckURL<String> for MetaBot {
     fn check(&self, url: String) -> Result<Permission, CheckError> {
         self.check(url.as_str())
     }
 }
 
-impl NiceBot {
+impl MetaBot {
     pub fn new(user_agent: Option<String>) -> Self {
         let hosts = HashMap::new();
         Self { hosts, user_agent }
