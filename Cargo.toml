@@ -6,14 +6,16 @@ edition = "2024"
 include = ["src/*"]
 
 [features]
-default = ["full"] #["percent-decoding", "async"]
+default = ["full"]
 full = [
+    "meta",
     "percent-decoding",
     "async",
     "async-tokio",
     "async-async-std",
     "async-smol",
 ]
+meta = ["dep:url"]
 percent-decoding = ["dep:percent-encoding"]
 async = ["dep:futures-lite"]
 async-tokio = ["async", "dep:tokio", "dep:tokio-util"]
@@ -21,7 +23,9 @@ async-async-std = ["async", "dep:async-std"]
 async-smol = ["async", "dep:smol"]
 
 [dependencies]
-url = { version = "2", default-features = false, features = ["std"] }
+url = { version = "2", optional = true, default-features = false, features = [
+    "std",
+] }
 percent-encoding = { version = "2", optional = true }
 tokio = { version = "1", optional = true, default-features = false, features = [
     "io-util",
