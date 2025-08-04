@@ -1,4 +1,4 @@
-use nicebot::NiceBot;
+use nicebot::SingleBot;
 use std::{fs, hint::black_box, str::FromStr};
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
@@ -27,7 +27,7 @@ fn from_str(c: &mut Criterion) {
             content.as_str(),
             |b, r| {
                 b.iter_batched(
-                    || NiceBot::new(None),
+                    || SingleBot::new(None),
                     |mut bot| {
                         bot += r;
                     },
@@ -42,7 +42,7 @@ fn from_str(c: &mut Criterion) {
 fn trim(c: &mut Criterion) {
     let mut group = c.benchmark_group("NiceBot::trim");
     for (name, content) in get_robots() {
-        let robot = NiceBot::from(content);
+        let robot = SingleBot::from(content);
         group.bench_with_input(BenchmarkId::from_parameter(name), &robot, |b, r| {
             b.iter_batched(
                 || r.clone(),
@@ -59,7 +59,7 @@ fn trim(c: &mut Criterion) {
 fn check(c: &mut Criterion) {
     let mut group = c.benchmark_group("NiceBot::check short");
     for (name, content) in get_robots() {
-        let robot = NiceBot::from(content);
+        let robot = SingleBot::from(content);
         group.bench_with_input(BenchmarkId::from_parameter(name), &robot, |b, r| {
             b.iter(|| {
                 r.check(black_box(""));
@@ -85,7 +85,7 @@ fn check(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("NiceBot::check long");
     for (name, content) in get_robots() {
-        let robot = NiceBot::from(content);
+        let robot = SingleBot::from(content);
         group.bench_with_input(BenchmarkId::from_parameter(name), &robot, |b, r| {
             b.iter(|| {
                 r.check(black_box(&long_string));
