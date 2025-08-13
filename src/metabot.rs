@@ -30,38 +30,13 @@ pub trait TryAddRobots<T, Q> {
     fn try_add_robots(&mut self, host: Q, robots_txt: T) -> bool;
 }
 
-impl<T> TryAddRobots<T, &str> for MetaBot
+impl<T, Q> TryAddRobots<T, Q> for MetaBot
 where
     MetaBot: AddRobots<T>,
+    Q: AsRef<str>,
 {
-    fn try_add_robots(&mut self, host: &str, robots_txt: T) -> bool {
-        let Ok(parsed_host) = Host::parse(host) else {
-            return false;
-        };
-        self.add_robots(parsed_host, robots_txt);
-        return true;
-    }
-}
-
-impl<T> TryAddRobots<T, &String> for MetaBot
-where
-    MetaBot: AddRobots<T>,
-{
-    fn try_add_robots(&mut self, host: &String, robots_txt: T) -> bool {
-        let Ok(parsed_host) = Host::parse(host.as_str()) else {
-            return false;
-        };
-        self.add_robots(parsed_host, robots_txt);
-        return true;
-    }
-}
-
-impl<T> TryAddRobots<T, String> for MetaBot
-where
-    MetaBot: AddRobots<T>,
-{
-    fn try_add_robots(&mut self, host: String, robots_txt: T) -> bool {
-        let Ok(parsed_host) = Host::parse(host.as_str()) else {
+    fn try_add_robots(&mut self, host: Q, robots_txt: T) -> bool {
+        let Ok(parsed_host) = Host::parse(host.as_ref()) else {
             return false;
         };
         self.add_robots(parsed_host, robots_txt);
