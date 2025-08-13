@@ -73,6 +73,7 @@ pub trait CheckURL<T> {
     fn check(&self, url: T) -> Result<Permission, CheckError>;
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CheckError {
     ParseError(ParseError),
     MissingHost,
