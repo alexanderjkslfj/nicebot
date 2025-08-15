@@ -47,7 +47,7 @@ fn trim(c: &mut Criterion) {
             b.iter_batched(
                 || r.clone(),
                 |mut robot_clone| {
-                    robot_clone.trim();
+                    robot_clone.shrink();
                 },
                 criterion::BatchSize::SmallInput,
             );

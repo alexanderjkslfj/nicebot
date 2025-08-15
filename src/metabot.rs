@@ -4,12 +4,16 @@ use url::{Host, ParseError, Url};
 
 use crate::{Permission, SingleBot};
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// Used to check the `robots.txt`s of multiple Hosts.
 pub struct MetaBot {
     hosts: HashMap<Host<String>, SingleBot>,
     user_agent: Option<String>,
 }
 
+/// Allows for adding `robots.txt`s.
 pub trait AddRobots<T> {
+    /// Adds a `robots.txt` for the specified host.
     fn add_robots(&mut self, host: Host<String>, robots_txt: T);
 }
 
@@ -26,7 +30,10 @@ where
     }
 }
 
+/// Allows for adding `robots.txt`s.
 pub trait TryAddRobots<T, Q> {
+    /// Adds a `robots.txt` for the specified host.
+    /// Returns `false` if parsing the host fails.
     fn try_add_robots(&mut self, host: Q, robots_txt: T) -> bool;
 }
 
@@ -44,13 +51,18 @@ where
     }
 }
 
+/// Allows for checking the permissions for a URL.
 pub trait CheckURL<T> {
+    /// Check the permissions for a URL.
     fn check(&self, url: T) -> Result<Permission, CheckError>;
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+/// Error if checking fails because of an invalid URL.
 pub enum CheckError {
+    /// Failed at parsing the input as a URL.
     ParseError(ParseError),
+    /// The provided URL did not contain a host.
     MissingHost,
 }
 
@@ -90,14 +102,17 @@ impl CheckURL<String> for MetaBot {
 }
 
 impl MetaBot {
+    /// Creates a new [`MetaBot`].
+    /// [`MetaBot`] is used to check multiple Hosts. If checking only on a single host, use [`crate::SingleBot`]
     pub fn new(user_agent: Option<String>) -> Self {
         let hosts = HashMap::new();
         Self { hosts, user_agent }
     }
 
-    pub fn trim(&mut self) {
+    /// Shrinks the internal data structure, saving a few bytes.
+    pub fn shrink(&mut self) {
         for bot in self.hosts.values_mut() {
-            bot.trim();
+            bot.shrink();
         }
     }
 }

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Debug};
 
+/// Prefix trie that supports Wildcards and Exacts
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PrefixTrie<T: Copy> {
     value: Option<T>,
@@ -15,6 +16,7 @@ impl<T: Copy> Default for PrefixTrie<T> {
 }
 
 impl<T: Copy> PrefixTrie<T> {
+    /// Creates a new [`PrefixTrie`].
     pub fn new() -> Self {
         PrefixTrie {
             value: None,
@@ -24,6 +26,7 @@ impl<T: Copy> PrefixTrie<T> {
         }
     }
 
+    /// Shrinks the internal data structure, saving a few bytes.
     pub fn shrink(&mut self) {
         self.children.shrink_to_fit();
         for child in self.children.values_mut() {
@@ -31,10 +34,16 @@ impl<T: Copy> PrefixTrie<T> {
         }
     }
 
+    /// Inserts a value at a given prefix.
+    /// `*` symbols are interpreted as wildcards.
+    /// A `\0` byte allows only for exact matching. (Anything after a `\0` byte is ignored.)
     pub fn insert(&mut self, key: &str, value: T) -> Option<T> {
         self.insert_chars(key.chars(), value)
     }
 
+    /// Inserts a value at a given prefix.
+    /// `*` symbols are interpreted as wildcards.
+    /// A `\0` byte allows only for exact matching. (Anything after a `\0` byte is ignored.)
     pub fn insert_chars(&mut self, mut key: impl Iterator<Item = char>, value: T) -> Option<T> {
         if let Some(letter) = key.next() {
             if letter == '*' {
@@ -61,10 +70,12 @@ impl<T: Copy> PrefixTrie<T> {
         }
     }
 
+    /// Gets the value with the most precise matching prefix
     pub fn get(&self, key: &str) -> Option<T> {
         self.get_chars(key.chars())
     }
 
+    /// Gets the value with the most precise matching prefix
     pub fn get_chars(&self, key: impl Iterator<Item = char> + Clone) -> Option<T> {
         self.get_chars_depth(key).and_then(|val| Some(val.0))
     }
@@ -109,10 +120,12 @@ impl<T: Copy> PrefixTrie<T> {
         };
     }
 
+    /// Checks if key can be found
     pub fn has(&self, key: &str) -> bool {
         self.has_chars(key.chars())
     }
 
+    /// Checks if key can be found
     pub fn has_chars(&self, key: impl Iterator<Item = char> + Clone) -> bool {
         self.get_chars(key).is_some()
     }

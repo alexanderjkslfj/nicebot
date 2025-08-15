@@ -68,9 +68,11 @@ where
     }
 }
 
+/// Allows for adding `robots.txt` from async sources
 #[cfg(feature = "async")]
 #[async_trait]
 pub trait AddAssignAsync<T> {
+    /// Add a `robots.txt`
     async fn add_async(&mut self, rhs: T)
     where
         T: 'async_trait + Send;
@@ -125,12 +127,15 @@ impl Default for SingleBot {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// Used to check the `robots.txt` of a single Host.
 pub struct SingleBot {
     prefixes: PrefixTrie<Permission>,
     user_agent: Option<String>,
 }
 
 impl SingleBot {
+    /// Creates a new [`SingleBot`].
+    /// [`SingleBot`] is used to check a single Host. If checking multiple hosts, use [`crate::MetaBot`]
     pub fn new(user_agent: Option<String>) -> Self {
         let mut prefixes = PrefixTrie::new();
         prefixes.insert("", Permission::Unspecified);
@@ -140,8 +145,8 @@ impl SingleBot {
         }
     }
 
-    /// Trims the internal data structure, saving a few bytes.
-    pub fn trim(&mut self) {
+    /// Shrinks the internal data structure, saving a few bytes.
+    pub fn shrink(&mut self) {
         self.prefixes.shrink();
     }
 
