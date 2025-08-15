@@ -48,15 +48,15 @@
 /// # }
 /// ```
 mod trie;
-pub use trie::PrefixTrie;
+pub use trie::*;
 
 mod singlebot;
-pub use singlebot::SingleBot;
+pub use singlebot::*;
 
 #[cfg(feature = "meta")]
 mod metabot;
 #[cfg(feature = "meta")]
-pub use metabot::{AddRobots, CheckError, CheckURL, MetaBot, TryAddRobots};
+pub use metabot::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Permission {
