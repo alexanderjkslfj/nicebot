@@ -48,25 +48,25 @@ impl<T: Copy> PrefixTrie<T> {
         if let Some(letter) = key.next() {
             if letter == '*' {
                 if let Some(child) = &mut self.wildcard {
-                    return child.insert_chars(key, value);
+                    child.insert_chars(key, value)
                 } else {
                     let mut child = PrefixTrie::new();
                     child.insert_chars(key, value);
                     self.wildcard = Some(Box::new(child));
-                    return None;
+                    None
                 }
             } else if letter == '\0' {
-                return self.exact.replace(value);
+                self.exact.replace(value)
             } else if let Some(child) = self.children.get_mut(&letter) {
-                return child.insert_chars(key, value);
+                child.insert_chars(key, value)
             } else {
                 let mut child = PrefixTrie::new();
                 child.insert_chars(key, value);
                 self.children.insert(letter, child);
-                return None;
+                None
             }
         } else {
-            return self.value.replace(value);
+            self.value.replace(value)
         }
     }
 
@@ -77,7 +77,7 @@ impl<T: Copy> PrefixTrie<T> {
 
     /// Gets the value with the most precise matching prefix
     pub fn get_chars(&self, key: impl Iterator<Item = char> + Clone) -> Option<T> {
-        self.get_chars_depth(key).and_then(|val| Some(val.0))
+        self.get_chars_depth(key).map(|val| val.0)
     }
 
     fn get_chars_depth(&self, mut key: impl Iterator<Item = char> + Clone) -> Option<(T, usize)> {
@@ -113,11 +113,7 @@ impl<T: Copy> PrefixTrie<T> {
             return Some((result.0, result.1 + 1));
         }
 
-        if let Some(value) = self.value {
-            return Some((value, 0));
-        } else {
-            return None;
-        };
+        self.value.map(|value| (value, 0))
     }
 
     /// Checks if key can be found

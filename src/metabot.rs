@@ -47,13 +47,15 @@ where
             return false;
         };
         self.add_robots(parsed_host, robots_txt);
-        return true;
+        true
     }
 }
 
 /// Allows for checking the permissions for a URL.
 pub trait CheckURL<T> {
-    /// Check the permissions for a URL.
+    /// Checks the permissions for a URL.
+    /// # Errors
+    /// Will return `Err` if URL parsing fails or URL doesn't contain host.
     fn check(&self, url: T) -> Result<Permission, CheckError>;
 }
 

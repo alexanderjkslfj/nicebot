@@ -166,9 +166,9 @@ impl SingleBot {
 
         #[cfg(feature = "percent-decoding")]
         if let Ok(decoded) = percent_decode_str(&val).decode_utf8() {
-            return (op, decoded.into_owned());
+            (op, decoded.into_owned())
         } else {
-            return (op, val);
+            (op, val)
         }
     }
 
@@ -196,7 +196,7 @@ impl SingleBot {
                 if matches!(state, Match::No) {
                     Some(None)
                 } else {
-                    Some(Some((state.clone(), (op, val))))
+                    Some(Some((*state, (op, val))))
                 }
             }
             _ => Some(None),
@@ -302,7 +302,7 @@ impl SingleBot {
                 "disallow" if *state => Some(Some((false, val))),
                 _ => Some(None),
             })
-            .filter_map(|opt| opt)
+            .flatten()
             .for_each(|(allow, val): (bool, String)| {
                 self.prefixes.insert(
                     &val,
@@ -367,8 +367,8 @@ impl SingleBot {
     ) -> impl Stream<Item = (String, String)> {
         lines
             .map(strip_comment)
-            .filter_map(|line| parse_pair(line))
-            .filter_map(|pair| filter_and_normalize(pair))
+            .filter_map(parse_pair)
+            .filter_map(filter_and_normalize)
     }
 
     fn capture_file(file: std::fs::File) -> impl Iterator<Item = (String, String)> {
@@ -377,7 +377,7 @@ impl SingleBot {
     }
 
     fn capture_reader(reader: impl std::io::BufRead) -> impl Iterator<Item = (String, String)> {
-        let lines = reader.lines().filter_map(|line| line.ok());
+        let lines = reader.lines().map_while(Result::ok);
         Self::capture_lines(lines)
     }
 
@@ -386,7 +386,7 @@ impl SingleBot {
         Self::capture_lines_str(lines)
     }
 
-    fn capture_lines<'a>(
+    fn capture_lines(
         lines: impl IntoIterator<Item = String>,
     ) -> impl Iterator<Item = (String, String)> {
         lines
@@ -428,10 +428,7 @@ fn parse_pair_str(line: &str) -> Option<(&str, &str)> {
     if line.is_empty() {
         None
     } else {
-        let mut parts = line.splitn(2, ':');
-        let op = parts.next()?;
-        let val = parts.next()?;
-        Some((op, val))
+        line.split_once(':')
     }
 }
 

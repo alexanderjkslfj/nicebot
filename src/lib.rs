@@ -48,10 +48,10 @@
 //! # Ok(())
 //! # }
 //! ```
-#![doc = include_str!("../README.md")]
 #![deny(missing_docs)]
-#![deny(missing_crate_level_docs)]
+#![deny(rustdoc::missing_crate_level_docs)]
 #![deny(rustdoc::broken_intra_doc_links)]
+#![deny(clippy::missing_errors_doc, clippy::missing_safety_doc)]
 
 mod trie;
 pub use trie::*;
