@@ -4,6 +4,7 @@ pkgs.mkShell {
     nixpkgs-fmt
     rustc
     cargo
+    clippy
     gcc
     rustfmt
   ];
