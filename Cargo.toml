@@ -26,7 +26,7 @@ full = [
 ]
 meta = ["dep:url"]
 percent-decoding = ["dep:percent-encoding"]
-async = ["dep:futures-lite"]
+async = ["dep:futures-lite", "dep:async-trait"]
 async-tokio = ["async", "dep:tokio", "dep:tokio-util"]
 async-async-std = ["async", "dep:async-std"]
 async-smol = ["async", "dep:smol"]
@@ -48,6 +48,7 @@ smol = { version = "2", optional = true, default-features = false }
 futures-lite = { version = "2", optional = true, default-features = false, features = [
     "std",
 ] }
+async-trait = { version = "0.1", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", default-features = false, features = [

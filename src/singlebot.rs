@@ -1,5 +1,10 @@
-use std::{cell::Cell, ops::AddAssign};
+use std::{
+    ops::AddAssign,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
+#[cfg(feature = "async")]
+use async_trait::async_trait;
 #[cfg(feature = "async")]
 use futures_lite::stream::{Stream, StreamExt};
 #[cfg(feature = "percent-decoding")]
@@ -21,26 +26,10 @@ impl AddAssign<String> for SingleBot {
     }
 }
 
-impl From<String> for SingleBot {
-    fn from(value: String) -> Self {
-        let mut bot = Self::new(None);
-        bot += value;
-        bot
-    }
-}
-
 impl AddAssign<&String> for SingleBot {
     fn add_assign(&mut self, rhs: &String) {
         let captures = Self::capture_str(rhs.as_str());
         self.extend_prefixes(captures);
-    }
-}
-
-impl From<&String> for SingleBot {
-    fn from(value: &String) -> Self {
-        let mut bot = Self::new(None);
-        bot += value;
-        bot
     }
 }
 
@@ -51,26 +40,10 @@ impl AddAssign<&str> for SingleBot {
     }
 }
 
-impl From<&str> for SingleBot {
-    fn from(value: &str) -> Self {
-        let mut bot = Self::new(None);
-        bot += value;
-        bot
-    }
-}
-
 impl AddAssign<std::fs::File> for SingleBot {
     fn add_assign(&mut self, rhs: std::fs::File) {
         let captures = Self::capture_file(rhs);
         self.extend_prefixes(captures);
-    }
-}
-
-impl From<std::fs::File> for SingleBot {
-    fn from(value: std::fs::File) -> Self {
-        let mut bot = Self::new(None);
-        bot += value;
-        bot
     }
 }
 
@@ -84,14 +57,64 @@ where
     }
 }
 
-impl<T> From<std::io::BufReader<T>> for SingleBot
+impl<T> From<T> for SingleBot
 where
-    T: std::io::Read,
+    SingleBot: AddAssign<T>,
 {
-    fn from(value: std::io::BufReader<T>) -> Self {
+    fn from(value: T) -> Self {
         let mut bot = Self::new(None);
         bot += value;
         bot
+    }
+}
+
+#[cfg(feature = "async")]
+#[async_trait]
+pub trait AddAssignAsync<T> {
+    async fn add_async(&mut self, rhs: T)
+    where
+        T: 'async_trait + Send;
+}
+
+#[cfg(feature = "async")]
+#[async_trait]
+impl<T> AddAssignAsync<futures_lite::io::BufReader<T>> for SingleBot
+where
+    T: futures_lite::AsyncRead + Unpin + Send,
+{
+    async fn add_async(&mut self, rhs: futures_lite::io::BufReader<T>)
+    where
+        T: 'async_trait,
+    {
+        let captures = Self::capture_reader_async(rhs);
+        self.extend_prefixes_async(captures).await;
+    }
+}
+
+#[cfg(feature = "async-tokio")]
+#[async_trait]
+impl AddAssignAsync<tokio::fs::File> for SingleBot {
+    async fn add_async(&mut self, rhs: tokio::fs::File) {
+        let captures = Self::capture_file_tokio(rhs);
+        self.extend_prefixes_async(captures).await;
+    }
+}
+
+#[cfg(feature = "async-async-std")]
+#[async_trait]
+impl AddAssignAsync<async_std::fs::File> for SingleBot {
+    async fn add_async(&mut self, rhs: async_std::fs::File) {
+        let captures = Self::capture_file_asyncstd(rhs);
+        self.extend_prefixes_async(captures).await;
+    }
+}
+
+#[cfg(feature = "async-smol")]
+#[async_trait]
+impl AddAssignAsync<smol::fs::File> for SingleBot {
+    async fn add_async(&mut self, rhs: smol::fs::File) {
+        let captures = Self::capture_file_smol(rhs);
+        self.extend_prefixes_async(captures).await;
     }
 }
 
@@ -117,31 +140,14 @@ impl SingleBot {
         }
     }
 
-    #[cfg(feature = "async-tokio")]
-    pub async fn add_file_tokio(&mut self, robots_txt: tokio::fs::File) {
-        let captures = Self::capture_file_tokio(robots_txt);
-        self.extend_prefixes_async(captures).await;
+    /// Trims the internal data structure, saving a few bytes.
+    pub fn trim(&mut self) {
+        self.prefixes.shrink();
     }
 
-    #[cfg(feature = "async-async-std")]
-    pub async fn add_file_asyncstd(&mut self, robots_txt: async_std::fs::File) {
-        let captures = Self::capture_file_asyncstd(robots_txt);
-        self.extend_prefixes_async(captures).await;
-    }
-
-    #[cfg(feature = "async-smol")]
-    pub async fn add_file_smol(&mut self, robots_txt: smol::fs::File) {
-        let captures = Self::capture_file_smol(robots_txt);
-        self.extend_prefixes_async(captures).await;
-    }
-
-    #[cfg(feature = "async")]
-    pub async fn from_reader_async(
-        &mut self,
-        robots_txt: futures_lite::io::BufReader<impl futures_lite::AsyncBufReadExt + Unpin>,
-    ) {
-        let captures = Self::capture_reader_async(robots_txt);
-        self.extend_prefixes_async(captures).await;
+    /// Checks the permission defined for a specific URL.
+    pub fn check(&self, url: &str) -> Permission {
+        self.prefixes.get(url).unwrap()
     }
 
     fn decode((op, mut val): (String, String)) -> (String, String) {
@@ -163,7 +169,7 @@ impl SingleBot {
 
     fn conform(
         state: &mut Match,
-        precise: &Cell<bool>,
+        precise: &AtomicBool,
         user_agent: Option<&String>,
         (op, val): (String, String),
     ) -> Option<Option<(Match, (String, String))>> {
@@ -175,7 +181,7 @@ impl SingleBot {
                     && val.to_lowercase().contains(ua)
                 {
                     *state = Match::Yes;
-                    precise.set(true);
+                    precise.store(true, Ordering::Relaxed);
                 } else {
                     *state = Match::No;
                 }
@@ -254,7 +260,7 @@ impl SingleBot {
         &mut self,
         captures: impl Stream<Item = (String, String)>,
     ) {
-        let precise = Cell::new(false);
+        let precise = AtomicBool::new(false);
 
         captures
             .map(Self::decode)
@@ -264,7 +270,7 @@ impl SingleBot {
             .collect::<Vec<_>>()
             .await
             .into_iter()
-            .filter_map(|result| Self::filter_weak(result, precise.get()))
+            .filter_map(|result| Self::filter_weak(result, precise.load(Ordering::Relaxed)))
             .for_each(|pair| Self::extend_prefix_trie(&mut self.prefixes, pair));
     }
 
@@ -308,7 +314,7 @@ impl SingleBot {
         &mut self,
         captures: impl Iterator<Item = (String, String)>,
     ) {
-        let precise = Cell::new(false);
+        let precise = AtomicBool::new(false);
 
         captures
             .map(Self::decode)
@@ -317,18 +323,8 @@ impl SingleBot {
             })
             .collect::<Vec<_>>()
             .into_iter()
-            .filter_map(|result| Self::filter_weak(result, precise.get()))
+            .filter_map(|result| Self::filter_weak(result, precise.load(Ordering::Relaxed)))
             .for_each(|pair| Self::extend_prefix_trie(&mut self.prefixes, pair));
-    }
-
-    /// Trims the internal data structure, saving a few bytes.
-    pub fn trim(&mut self) {
-        self.prefixes.shrink();
-    }
-
-    /// Checks the permission defined for a specific URL.
-    pub fn check(&self, url: &str) -> Permission {
-        self.prefixes.get(url).unwrap()
     }
 
     #[cfg(feature = "async-smol")]

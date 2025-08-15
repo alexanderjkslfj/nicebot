@@ -42,10 +42,12 @@ mod tests {
         let rt = tokio::runtime::Runtime::new().unwrap();
 
         rt.block_on(async {
+            use nicebot::AddAssignAsync;
+
             let input = tokio::fs::File::open("test-data/tor.txt").await.unwrap();
 
             let mut bot = SingleBot::new(None);
-            bot.add_file_tokio(input).await;
+            bot.add_async(input).await;
 
             assert_eq!(bot.check("/sass"), Permission::Unspecified);
             assert_eq!(bot.check("/scss"), Permission::Denied);
@@ -56,12 +58,14 @@ mod tests {
     #[test]
     fn from_file_asyncstd() {
         async_std::task::block_on(async {
+            use nicebot::AddAssignAsync;
+
             let input = async_std::fs::File::open("test-data/tor.txt")
                 .await
                 .unwrap();
 
             let mut bot = SingleBot::new(None);
-            bot.add_file_asyncstd(input).await;
+            bot.add_async(input).await;
 
             assert_eq!(bot.check("/sass"), Permission::Unspecified);
             assert_eq!(bot.check("/scss"), Permission::Denied);
@@ -72,10 +76,12 @@ mod tests {
     #[test]
     fn from_file_smol() {
         smol::block_on(async {
+            use nicebot::AddAssignAsync;
+
             let input = smol::fs::File::open("test-data/tor.txt").await.unwrap();
 
             let mut bot = SingleBot::new(None);
-            bot.add_file_smol(input).await;
+            bot.add_async(input).await;
 
             assert_eq!(bot.check("/sass"), Permission::Unspecified);
             assert_eq!(bot.check("/scss"), Permission::Denied);
